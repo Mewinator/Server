@@ -2,23 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Simple Client</title>
+  <title>Simple Client with Sorting & Counts</title>
 </head>
 <body>
   <h1>Simple Command Sender</h1>
-  <button onclick="send()">Create</button><input type="text" id="hostname" placeholder="hostname"><input type="text" id="tld" placeholder="tld"><input type="text" id="creator" placeholder="creator"><input type="text" id="datecreated" placeholder="datecreated"><input type="text" id="uuid" placeholder="uuid">
+
+  <!-- Create -->
+  <h3>Create</h3>
+  <input type="text" id="hostname" placeholder="hostname">
+  <input type="text" id="tld" placeholder="tld">
+  <input type="text" id="creator" placeholder="creator">
+  <input type="text" id="source" placeholder="source">
+  <input type="text" id="datecreated" placeholder="datecreated">
+  <input type="text" id="uuid" placeholder="uuid">
+  <button onclick="send()">Create</button>
+
+  <!-- Update -->
+  <h3>Update</h3>
+  <input type="number" id="updateIndex" placeholder="index">
+  <input type="text" id="updateHostname" placeholder="hostname">
+  <input type="text" id="updateTld" placeholder="tld">
+  <input type="text" id="updateCreator" placeholder="creator">
+  <input type="text" id="updateSource" placeholder="source">
+  <input type="text" id="updateDatecreated" placeholder="datecreated">
+  <input type="text" id="updateUuid" placeholder="uuid">
+  <button onclick="updateItem()">Update</button>
+
+  <!-- Delete -->
+  <h3>Delete</h3>
+  <input type="number" id="deleteIndex" placeholder="index">
+  <button onclick="deleteItem()">Delete</button>
+
+  <!-- List -->
+  <h3>List</h3>
   <button onclick="listItems()">List Items</button>
+  <button onclick="listSorted()">List Sorted by Hostname</button>
   <pre id="output"></pre>
+  <pre id="counts"></pre>
 
   <script>
     async function send() {
       const item = {
-        hostname: "example",
-        tld: "com",
-        creator: "tester",
-        source: "client",
-        datecreated: "2025-07-12",
-        uuid: "uuid-1234"
+        hostname: document.getElementById('hostname').value,
+        tld: document.getElementById('tld').value,
+        creator: document.getElementById('creator').value,
+        source: document.getElementById('source').value,
+        datecreated: document.getElementById('datecreated').value,
+        uuid: document.getElementById('uuid').value
       };
       const res = await fetch('/data', {
         method: 'POST',
@@ -26,13 +56,67 @@
         body: JSON.stringify(item)
       });
       const data = await res.json();
-      document.getElementById('output').textContent = "Added: " + JSON.stringify(data, null, 2);
+      document.getElementById('output').textContent = "Added:\n" + JSON.stringify(data, null, 2);
+    }
+
+    async function updateItem() {
+      const index = document.getElementById('updateIndex').value;
+      const item = {
+        hostname: document.getElementById('updateHostname').value,
+        tld: document.getElementById('updateTld').value,
+        creator: document.getElementById('updateCreator').value,
+        source: document.getElementById('updateSource').value,
+        datecreated: document.getElementById('updateDatecreated').value,
+        uuid: document.getElementById('updateUuid').value
+      };
+      const res = await fetch(`/data/${index}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(item)
+      });
+      const data = await res.json();
+      document.getElementById('output').textContent = "Updated:\n" + JSON.stringify(data, null, 2);
+    }
+
+    async function deleteItem() {
+      const index = document.getElementById('deleteIndex').value;
+      const res = await fetch(`/data/${index}`, { method: 'DELETE' });
+      const data = await res.json();
+      document.getElementById('output').textContent = "Deleted:\n" + JSON.stringify(data, null, 2);
     }
 
     async function listItems() {
       const res = await fetch('/data');
       const data = await res.json();
-      document.getElementById('output').textContent = "List: " + JSON.stringify(data, null, 2);
+      document.getElementById('output').textContent = "List:\n" + JSON.stringify(data, null, 2);
+      updateCounts(data);
+    }
+
+    async function listSorted() {
+      const res = await fetch('/data');
+      let data = await res.json();
+      data.sort((a, b) => a.hostname.localeCompare(b.hostname));
+      document.getElementById('output').textContent = "Sorted by hostname:\n" + JSON.stringify(data, null, 2);
+      updateCounts(data);
+    }
+
+    function updateCounts(data) {
+      const tldCounts = {};
+      const creatorCounts = {};
+      const dateCounts = {};
+
+      data.forEach(item => {
+        tldCounts[item.tld] = (tldCounts[item.tld] || 0) + 1;
+        creatorCounts[item.creator] = (creatorCounts[item.creator] || 0) + 1;
+        dateCounts[item.datecreated] = (dateCounts[item.datecreated] || 0) + 1;
+      });
+
+      const countsText =
+        "Counts by TLD:\n" + JSON.stringify(tldCounts, null, 2) +
+        "\n\nCounts by Creator:\n" + JSON.stringify(creatorCounts, null, 2) +
+        "\n\nCounts by Date Created:\n" + JSON.stringify(dateCounts, null, 2);
+
+      document.getElementById('counts').textContent = countsText;
     }
   </script>
 </body>
