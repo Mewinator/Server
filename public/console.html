@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Client</title>
+</head>
+<body>
+  <h1>Simple Command Sender</h1>
+  <button onclick="send()">Create</button><input type="text" id="hostname" placeholder="hostname"><input type="text" id="tld" placeholder="tld"><input type="text" id="creator" placeholder="creator"><input type="text" id="datecreated" placeholder="datecreated"><input type="text" id="uuid" placeholder="uuid">
+  <button onclick="listItems()">List Items</button>
+  <pre id="output"></pre>
+
+  <script>
+    async function send() {
+      const item = {
+        hostname: "example",
+        tld: "com",
+        creator: "tester",
+        source: "client",
+        datecreated: "2025-07-12",
+        uuid: "uuid-1234"
+      };
+      const res = await fetch('/data', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(item)
+      });
+      const data = await res.json();
+      document.getElementById('output').textContent = "Added: " + JSON.stringify(data, null, 2);
+    }
+
+    async function listItems() {
+      const res = await fetch('/data');
+      const data = await res.json();
+      document.getElementById('output').textContent = "List: " + JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
