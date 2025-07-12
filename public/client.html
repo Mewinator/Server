@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Data Object Manager</title>
+  <style>
+    body { font-family: sans-serif; background: #262626; margin: 0; }
+    .tabs { display: flex; background: #090909; color: white; }
+    .tab { padding: 1rem; cursor: pointer; }
+    .tab.active { background: #1a6de2; border-radius: 12px 12px 0 0; }
+    .tab-content { padding: 1rem; display: none; }
+    .tab-content.active { display: block; }
+    .item { background: #fff; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    input, textarea { height: 15%; width: 80%; margin-top: 0.5rem; margin-bottom: 0.75rem; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { padding: 0.5rem 1rem; margin-right: 0.5rem; background: #0f0; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    button:hover { background: rgb(0, 172, 0); }
+    .danger { background: #dc3545; color: white; }
+    .danger:hover { background: #a71d2a; }
+    .logs { white-space: pre-line; background: #111; color: #0f0; padding: 1rem; border-radius: 5px; height: 300px; overflow-y: scroll; }
+    h2 { color: white; }
+    label { font-weight: bold; color: #000; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #aaa; padding: 0.5rem; text-align: left; color: #fff; }
+    span { color: #ccc; font-size: 0.9rem; display: block; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('dataTab')">Data</div>
+    <div class="tab" onclick="switchTab('logsTab')">Logs</div>
+    <div class="tab" onclick="switchTab('consoleTab')">Console</div>
+    <div class="tab" onclick="switchTab('helpTab')">Help</div>
+  </div>
+
+  <div id="dataTab" class="tab-content active">
+    <h2>Add New Entry</h2>
+    <input id="new-hostname" placeholder="Hostname">
+    <input id="new-tld" placeholder="TLD">
+    <input id="new-creator" placeholder="Creator">
+    <input id="new-source" placeholder="Source">
+    <input id="new-datecreated" placeholder="Date Created">
+    <input id="new-uuid" placeholder="UUID">
+    <br>
+    <button onclick="addItem()" style="width: 10%;">Add</button>
+
+    <h2>Stored Data</h2>
+    <div id="dataList"></div>
+  </div>
+
+  <div id="logsTab" class="tab-content">
+    <h2>Logs</h2>
+    <div id="logs" class="logs"></div>
+  </div>
+
+  <div id="consoleTab" class="tab-content">
+    <h2>Console</h2>
+    <input id="consoleInput" placeholder="Enter command..." onkeydown="if(event.key==='Enter') handleCommand()">
+    <div id="logs-console" class="logs"></div>
+  </div>
+
+  <div id="helpTab" class="tab-content">
+    <h2>Help</h2>
+    <table>
+      <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+      <tr><td>/list</td><td>List all objects</td><td>list</td></tr>
+      <tr><td>/add &lt;hostname&gt; &lt;tld&gt; &lt;creator&gt; &lt;source&gt; &lt;datecreated&gt; &lt;uuid&gt;</td><td>Add new object</td><td>add "host1" "com" "user" "src" "2023-01-01" "uuid123"</td></tr>
+      <tr><td>/update &lt;index&gt; &lt;hostname&gt; &lt;tld&gt; &lt;creator&gt; &lt;source&gt; &lt;datecreated&gt; &lt;uuid&gt;</td><td>Update object at index</td><td>update 0 "host1" "com" "user" "src" "2023-01-01" "uuid123"</td></tr>
+      <tr><td>/delete &lt;index&gt;</td><td>Delete object at index</td><td>delete 0</td></tr>
+    </table>
+    <span>Objects start at index 0.</span>
+  </div>
+
+  <script>
+    let lastDataString = '';
+    let currentData = [];
+
+    function switchTab(id) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(id).classList.add('active');
+    }
+
+    function log(message) {
+      const logs = document.getElementById('logs');
+      const logsConsole = document.getElementById('logs-console');
+      logsConsole.textContent += `> ${message}\n`;
+      logs.textContent += `> ${message}\n`;
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    async function fetchData() {
+      const res = await fetch('/data');
+      const data = await res.json();
+      const dataString = JSON.stringify(data);
+      if (dataString !== lastDataString) {
+        lastDataString = dataString;
+        currentData = data;
+        updateList(data);
+      }
+    }
+
+    function updateList(data) {
+      const container = document.getElementById('dataList');
+      container.innerHTML = '';
+      data.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <label>Hostname</label>
+          <br>
+          <input id="edit-hostname-${index}" value="${item.hostname}">
+          <br>
+          <label>TLD</label>
+          <br>
+          <input id="edit-tld-${index}" value="${item.tld}">
+          <br>
+          <label>Creator</label>
+          <br>
+          <input id="edit-creator-${index}" value="${item.creator}">
+          <br>
+          <label>Source</label>
+          <br>
+          <input id="edit-source-${index}" value="${item.source}">
+          <br>
+          <label>Date Created</label>
+          <br>
+          <input id="edit-datecreated-${index}" value="${item.datecreated}">
+          <br>
+          <label>UUID</label>
+          <br>
+          <input id="edit-uuid-${index}" value="${item.uuid}">
+          <br>
+          <button onclick="updateItem(${index})">Update</button>
+          <button class="danger" onclick="deleteItem(${index})">Delete</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function addItem() {
+      const hostname = document.getElementById('new-hostname').value.trim();
+      const tld = document.getElementById('new-tld').value.trim();
+      const creator = document.getElementById('new-creator').value.trim();
+      const source = document.getElementById('new-source').value.trim();
+      const datecreated = document.getElementById('new-datecreated').value.trim();
+      const uuid = document.getElementById('new-uuid').value.trim();
+
+      if (!hostname || !tld || !creator || !source || !datecreated || !uuid) {
+        log("All fields are required to add an entry.");
+        return;
+      }
+
+      await fetch('/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostname, tld, creator, source, datecreated, uuid })
+      });
+      log(`add "${hostname}", "${tld}", "${creator}", "${source}", "${datecreated}", "${uuid}"`);
+      document.getElementById('new-hostname').value = '';
+      document.getElementById('new-tld').value = '';
+      document.getElementById('new-creator').value = '';
+      document.getElementById('new-source').value = '';
+      document.getElementById('new-datecreated').value = '';
+      document.getElementById('new-uuid').value = '';
+      fetchData();
+    }
+
+    async function updateItem(index) {
+      const hostname = document.getElementById(`edit-hostname-${index}`).value.trim();
+      const tld = document.getElementById(`edit-tld-${index}`).value.trim();
+      const creator = document.getElementById(`edit-creator-${index}`).value.trim();
+      const source = document.getElementById(`edit-source-${index}`).value.trim();
+      const datecreated = document.getElementById(`edit-datecreated-${index}`).value.trim();
+      const uuid = document.getElementById(`edit-uuid-${index}`).value.trim();
+
+      if (!hostname || !tld || !creator || !source || !datecreated || !uuid) {
+        log("All fields are required to update.");
+        return;
+      }
+
+      await fetch(`/data/${index}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostname, tld, creator, source, datecreated, uuid })
+      });
+      log(`update ${index} "${hostname}", "${tld}", "${creator}", "${source}", "${datecreated}", "${uuid}"`);
+      fetchData();
+    }
+
+    async function deleteItem(index) {
+      await fetch(`/data/${index}`, { method: 'DELETE' });
+      log(`delete ${index}`);
+      fetchData();
+    }
+
+    async function handleCommand() {
+      const input = document.getElementById('consoleInput');
+      const cmd = input.value.trim();
+      input.value = '';
+      const parts = cmd.match(/(?:[^\s"]+|"[^"]*")+/g)?.map(p => p.replace(/^"|"$/g, '')) || [];
+      if (!parts.length) return;
+
+      const [action, ...args] = parts;
+
+      switch (action) {
+        case '/list':
+          log(JSON.stringify(currentData, null, 2));
+          break;
+        case '/add':
+          if (args.length < 6) return log("Usage: add \"hostname\" \"tld\" \"creator\" \"source\" \"datecreated\" \"uuid\"");
+          await fetch('/data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              hostname: args[0], tld: args[1], creator: args[2],
+              source: args[3], datecreated: args[4], uuid: args[5]
+            })
+          });
+          log(cmd);
+          break;
+        case '/update':
+          if (args.length < 7) return log("Usage: update index \"hostname\" \"tld\" \"creator\" \"source\" \"datecreated\" \"uuid\"");
+          await fetch(`/data/${args[0]}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              hostname: args[1], tld: args[2], creator: args[3],
+              source: args[4], datecreated: args[5], uuid: args[6]
+            })
+          });
+          log(cmd);
+          break;
+        case '/delete':
+          if (!args[0]) return log("Usage: delete index");
+          await fetch(`/data/${args[0]}`, { method: 'DELETE' });
+          log(cmd);
+          break;
+        default:
+          log(`Unknown command: ${cmd}`);
+      }
+      fetchData();
+    }
+
+    fetchData();
+    setInterval(fetchData, 100);
+  </script>
+</body>
+</html>
