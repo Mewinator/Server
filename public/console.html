@@ -13,7 +13,6 @@
   <input type="text" id="tld" placeholder="tld">
   <input type="text" id="creator" placeholder="creator">
   <input type="text" id="source" placeholder="source">
-  <input type="text" id="datecreated" placeholder="datecreated">
   <input type="text" id="uuid" placeholder="uuid">
   <button onclick="send()">Create</button>
 
@@ -24,7 +23,6 @@
   <input type="text" id="updateTld" placeholder="tld">
   <input type="text" id="updateCreator" placeholder="creator">
   <input type="text" id="updateSource" placeholder="source">
-  <input type="text" id="updateDatecreated" placeholder="datecreated">
   <input type="text" id="updateUuid" placeholder="uuid">
   <button onclick="updateItem()">Update</button>
 
@@ -47,7 +45,7 @@
         tld: document.getElementById('tld').value,
         creator: document.getElementById('creator').value,
         source: document.getElementById('source').value,
-        datecreated: document.getElementById('datecreated').value,
+        datecreated: new date,
         uuid: document.getElementById('uuid').value
       };
       const res = await fetch('/data', {
