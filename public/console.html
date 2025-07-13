@@ -13,18 +13,7 @@
   <input type="text" id="tld" placeholder="tld">
   <input type="text" id="creator" placeholder="creator">
   <input type="text" id="source" placeholder="source">
-  <input type="text" id="uuid" placeholder="uuid">
   <button onclick="send()">Create</button>
-
-  <!-- Update -->
-  <h3>Update</h3>
-  <input type="number" id="updateIndex" placeholder="index">
-  <input type="text" id="updateHostname" placeholder="hostname">
-  <input type="text" id="updateTld" placeholder="tld">
-  <input type="text" id="updateCreator" placeholder="creator">
-  <input type="text" id="updateSource" placeholder="source">
-  <input type="text" id="updateUuid" placeholder="uuid">
-  <button onclick="updateItem()">Update</button>
 
   <!-- Delete -->
   <h3>Delete</h3>
@@ -39,15 +28,40 @@
   <pre id="counts"></pre>
 
   <script>
+    let cachedData = [];
+
+    function generateUUID() {
+      // Simple UUID v4 generator
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
     async function send() {
+      const hostname = document.getElementById('hostname').value;
+      const tld = document.getElementById('tld').value;
+      const creator = document.getElementById('creator').value;
+      const source = document.getElementById('source').value;
+
+      // Fetch latest data first to check for duplicates
+      await refreshData();
+
+      const duplicate = cachedData.find(item => item.hostname === hostname);
+      if (duplicate) {
+        alert("Hostname already exists. Please use a different hostname.");
+        return;
+      }
+
       const item = {
-        hostname: document.getElementById('hostname').value,
-        tld: document.getElementById('tld').value,
-        creator: document.getElementById('creator').value,
-        source: document.getElementById('source').value,
+        hostname,
+        tld,
+        creator,
+        source,
         datecreated: new Date(),
-        uuid: document.getElementById('uuid').value
+        uuid: generateUUID()
       };
+
       const res = await fetch('/data', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -55,25 +69,9 @@
       });
       const data = await res.json();
       document.getElementById('output').textContent = "Added:\n" + JSON.stringify(data, null, 2);
-    }
 
-    async function updateItem() {
-      const index = document.getElementById('updateIndex').value;
-      const item = {
-        hostname: document.getElementById('updateHostname').value,
-        tld: document.getElementById('updateTld').value,
-        creator: document.getElementById('updateCreator').value,
-        source: document.getElementById('updateSource').value,
-        datecreated: document.getElementById('updateDatecreated').value,
-        uuid: document.getElementById('updateUuid').value
-      };
-      const res = await fetch(`/data/${index}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(item)
-      });
-      const data = await res.json();
-      document.getElementById('output').textContent = "Updated:\n" + JSON.stringify(data, null, 2);
+      // Refresh local data and counts
+      await listItems();
     }
 
     async function deleteItem() {
@@ -81,11 +79,15 @@
       const res = await fetch(`/data/${index}`, { method: 'DELETE' });
       const data = await res.json();
       document.getElementById('output').textContent = "Deleted:\n" + JSON.stringify(data, null, 2);
+
+      // Refresh local data and counts
+      await listItems();
     }
 
     async function listItems() {
       const res = await fetch('/data');
       const data = await res.json();
+      cachedData = data;
       document.getElementById('output').textContent = "List:\n" + JSON.stringify(data, null, 2);
       updateCounts(data);
     }
@@ -93,9 +95,15 @@
     async function listSorted() {
       const res = await fetch('/data');
       let data = await res.json();
+      cachedData = data;
       data.sort((a, b) => a.hostname.localeCompare(b.hostname));
       document.getElementById('output').textContent = "Sorted by hostname:\n" + JSON.stringify(data, null, 2);
       updateCounts(data);
+    }
+
+    async function refreshData() {
+      const res = await fetch('/data');
+      cachedData = await res.json();
     }
 
     function updateCounts(data) {
