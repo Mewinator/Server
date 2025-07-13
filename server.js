@@ -49,5 +49,19 @@ app.delete('/data/:index', (req, res) => {
   res.json(removed);
 });
 
+// ✅ NEW: Delete by UUID
+app.delete('/data/uuid/:uuid', (req, res) => {
+  const { uuid } = req.params;
+  const index = data.findIndex(item => item.uuid === uuid);
+
+  if (index === -1) {
+    return res.status(404).json({ error: 'UUID not found' });
+  }
+
+  const removed = data.splice(index, 1)[0];
+  res.json(removed);
+});
+
 app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
