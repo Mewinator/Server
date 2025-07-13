@@ -45,7 +45,7 @@
         tld: document.getElementById('tld').value,
         creator: document.getElementById('creator').value,
         source: document.getElementById('source').value,
-        datecreated: new date,
+        datecreated: new date(),
         uuid: document.getElementById('uuid').value
       };
       const res = await fetch('/data', {
