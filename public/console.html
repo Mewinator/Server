@@ -17,7 +17,8 @@
 
   <!-- Delete -->
   <h3>Delete</h3>
-  <input type="number" id="deleteIndex" placeholder="index">
+  <input type="text" id="deleteInput" placeholder="index">
+  <button id="toggleDeleteMode" onclick="toggleDeleteMode()">Mode: Index</button>
   <button onclick="deleteItem()">Delete</button>
 
   <!-- List -->
@@ -29,9 +30,9 @@
 
   <script>
     let cachedData = [];
+    let deleteMode = 'index'; // Can be 'index' or 'uuid'
 
     function generateUUID() {
-      // Simple UUID v4 generator
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
         const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
@@ -44,7 +45,6 @@
       const creator = document.getElementById('creator').value;
       const source = document.getElementById('source').value;
 
-      // Fetch latest data first to check for duplicates
       await refreshData();
 
       const duplicate = cachedData.find(item => item.hostname === hostname);
@@ -70,18 +70,39 @@
       const data = await res.json();
       document.getElementById('output').textContent = "Added:\n" + JSON.stringify(data, null, 2);
 
-      // Refresh local data and counts
       await listItems();
     }
 
     async function deleteItem() {
-      const index = document.getElementById('deleteIndex').value;
-      const res = await fetch(`/data/${index}`, { method: 'DELETE' });
-      const data = await res.json();
-      document.getElementById('output').textContent = "Deleted:\n" + JSON.stringify(data, null, 2);
+      const input = document.getElementById('deleteInput').value.trim();
+      let res, data;
 
-      // Refresh local data and counts
+      if (deleteMode === 'index') {
+        res = await fetch(`/data/${input}`, { method: 'DELETE' });
+      } else if (deleteMode === 'uuid') {
+        res = await fetch(`/data/uuid/${input}`, { method: 'DELETE' });
+      }
+
+      try {
+        data = await res.json();
+        document.getElementById('output').textContent = "Deleted:\n" + JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById('output').textContent = "Delete failed or invalid response.";
+      }
+
       await listItems();
+    }
+
+    function toggleDeleteMode() {
+      if (deleteMode === 'index') {
+        deleteMode = 'uuid';
+        document.getElementById('deleteInput').placeholder = 'uuid';
+        document.getElementById('toggleDeleteMode').textContent = 'Mode: UUID';
+      } else {
+        deleteMode = 'index';
+        document.getElementById('deleteInput').placeholder = 'index';
+        document.getElementById('toggleDeleteMode').textContent = 'Mode: Index';
+      }
     }
 
     async function listItems() {
